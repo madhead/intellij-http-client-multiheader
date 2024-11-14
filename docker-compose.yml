@@ -1,0 +1,26 @@
+name: intellij-http-client-multiheader
+
+services:
+  httpbin:
+    image: kennethreitz/httpbin
+    ports:
+      - "8080:80"
+
+  curl:
+    image: quay.io/curl/curl:latest
+    volumes:
+      - ./curl.sh:/curl.sh
+    entrypoint:
+      - /curl.sh
+    depends_on:
+      - httpbin
+
+  ijhttp:
+    image: jetbrains/intellij-http-client
+    volumes:
+      - ./intellij.http:/intellij.http
+    command:
+      - --log-level=VERBOSE
+      - /intellij.http
+    depends_on:
+      - httpbin

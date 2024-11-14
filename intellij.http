@@ -1,0 +1,8 @@
+GET http://httpbin/headers
+X-Multi-Header: Value 1
+X-Multi-Header: Value 2
+X-Multi-Header: Value 3
+
+> {%
+    console.log("DRAKE")
+%}

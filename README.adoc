@@ -1,0 +1,61 @@
+= IntelliJ HTTP Client Multiheader Issue Demo
+
+This repository demonstrates an issue with IntelliJ's HTTP Client when sending multiple headers with the same name.
+
+To reproduce the issue, simply run the docker-compose file:
+
+[source,shell]
+----
+docker compose up
+----
+
+The link:./docker-compose.yml[`docker-compose.yml`] file will start an https://httpbin.org[httpbin] instance and send two request to its `/headers` endpoint: one using cURL, and the other using IntelliJ's HTTP Client.
+This endpoint returns the headers of the request in the response body, thus allowing to inspect the headers sent by the client.
+
+The requests contain a repeated header `X-Multi-Header` with three values: `Value 1`, `Value 2`, and `Value 3`:
+
+[source,shell]
+----
+GET http://httpbin/headers
+X-Multi-Header: Value 1
+X-Multi-Header: Value 2
+X-Multi-Header: Value 3
+----
+
+Such repeated (multi-valued) headers https://datatracker.ietf.org/doc/html/rfc2616#section-4.2[are allowed by the RFC]:
+
+[quote, RFC 2616]
+____
+Multiple message-header fields with the same field-name MAY be present in a message if and only if the entire field-value for that header field is defined as a comma-separated list [i.e., #(values)].
+It MUST be possible to combine the multiple header fields into one "field-name: field-value" pair, without changing the semantics of the message, by appending each subsequent field-value to the first, each separated by a comma.
+The order in which header fields with the same field-name are received is therefore significant to the interpretation of the combined field value, and thus a proxy MUST NOT change the order of these field values when a message is forwarded.
+____
+
+However, when running the requests, the IntelliJ HTTP Client seems to misbehave and sends the last header, which could be observed in the `docker compose` output:
+
+[source,shell]
+----
+curl-1     | {
+curl-1     |   "headers": {
+curl-1     |     "Accept": "*/*", 
+curl-1     |     "Host": "httpbin", 
+curl-1     |     "User-Agent": "curl/8.11.0", 
+curl-1     |     "X-Multi-Header": "Value 1,Value 2,Value 3"
+curl-1     |   }
+curl-1     | }
+----
+
+[source,shell]
+----
+ijhttp-1   | {
+ijhttp-1   |   "headers": {
+ijhttp-1   |     "Accept": "*/*", 
+ijhttp-1   |     "Accept-Encoding": "br, deflate, gzip, x-gzip", 
+ijhttp-1   |     "Host": "httpbin", 
+ijhttp-1   |     "User-Agent": "IntelliJ HTTP Client/CLI 2024.3", 
+ijhttp-1   |     "X-Multi-Header": "Value 3"
+ijhttp-1   |   }
+ijhttp-1   | }
+----
+
+Note that the response to the cURL request contains three values, while the response to the IntelliJ HTTP Client request only contains the last value.
